@@ -18,4 +18,5 @@ The api will have to be able to:
 
 #links:
 [video denoise algorithm, pdf](http://bit.kuas.edu.tw/~jihmsp/2014/vol5/JIH-MSP-2014-01-004.pdf)
+
 [image processing wiht python scipy](http://prancer.physics.louisville.edu/astrowiki/index.php/Image_processing_with_Python_and_SciPy)
