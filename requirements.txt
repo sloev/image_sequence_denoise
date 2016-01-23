@@ -1,0 +1,6 @@
+pymongo
+tornado
+motor
+numpy
+scipy
+pillow
