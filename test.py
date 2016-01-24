@@ -16,6 +16,9 @@ prefix="p"
 
 import itertools as itr
 import image_slicer
+from io import BytesIO
+import base64
+
 window_size = 20
 slice_num = 10
 def producer(args):
@@ -42,23 +45,22 @@ def producer(args):
             result.paste(i.image, (x,0))
             x+= i.image.size[0]
         name = "batch_%d-%d_%d.jpg" %(filename_prefix,(filename_prefix + window_size), index)
-        filename = "/tmp/composite/%s.jpg" %name
-        result.save(filename)
-        producer.queue.put("[ %s ][ %s ]" %(process_name,name))
+        orig_tile = originals[index]
+        byte_io= BytesIO()
+        result.save(byte_io, 'JPEG')
+        image_string = base64.b64encode(byte_io.getvalue()).decode()
+        obj =  (process_name,
+                index,
+                image_string,
+                orig_tile.number,
+                orig_tile.position,
+                orig_tile.coords
+                )
+        producer.queue.put(obj)
     producer.queue.put("minus")
-    return
-    #for making tiles in one image with original placing, not interesting
-    #instead keep meta data in other container
-    for index, tile in enumerate(originals):
-        try:
-            tile.image = l[0][index].image
-        except IndexError:
-            tile.image.paste(0,None)
-    img = image_slicer.join(originals)
-    img.save("/tmp/composite.jpg")
-    return ""
 
 def consumer(queue, images_left):
+    images_len = len(str(images_left))
     while True:
         msg = queue.get()
         if msg == None:
@@ -66,7 +68,9 @@ def consumer(queue, images_left):
         elif msg == "minus":
             images_left -=1 
         else:
-            print "%s\tleft: %d" %(msg, images_left)
+            process_name,index,image_string,number,position,coords = msg
+            s =  "[%s]\tleft: %0"+str(images_len)+"d\tindex=%0"+str(images_len)+"d\tnumber=%d\tposition=%s\tcoords=%s"
+            print s %(process_name, images_left, index, number, str(position), str(coords))
 
 def producer_init(queue):
     producer.queue = queue
@@ -93,8 +97,10 @@ def main(path):
         consumer_p = multiprocessing.Process(target=consumer, args=((q),(get_count()),))
         consumer_p.daemon=True
         consumer_p.start()
-        with closing(multiprocessing.Pool(8, producer_init, [q])) as pool:
-            pool.map(producer, window(gen))
+        producer_pool = multiprocessing.Pool(8, producer_init, [q])
+        producer_pool.map_async(producer, window(gen))
+        producer_pool.close()
+        producer_pool.join()
     except KeyboardInterrupt:
         pass
     q.put(None)
