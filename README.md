@@ -15,8 +15,10 @@ The api will have to be able to:
 * put together a frame of tiles.
 * append frame to resulting frames and encode to video.
 
+* use map_async
 
 #links:
+[map_async](http://stackoverflow.com/questions/27479218/map-async-vs-apply-asyncwhat-should-i-use-in-this-case)
 [video denoise algorithm, pdf](http://bit.kuas.edu.tw/~jihmsp/2014/vol5/JIH-MSP-2014-01-004.pdf)
 
 [webworker map reduce with server written in GO](https://github.com/oryband/go-web-mapreduce)
