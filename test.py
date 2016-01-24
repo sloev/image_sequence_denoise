@@ -19,13 +19,14 @@ import image_slicer
 window_size = 20
 slice_num = 10
 def producer(args):
+    process_name = multiprocessing.current_process().name
     filename_prefix = ""
     originals = []
     l = {}
     gen =((int(file[len(prefix):-len(ending)]), image_slicer.slice(os.path.join(root, file), slice_num, save=False)) for root, file in args)
     for index, tiles in gen:
         if not filename_prefix:
-            filename_prefix = str(index)
+            filename_prefix = index
         if not originals:
             originals = tiles
         for i, tile in enumerate(tiles):
@@ -40,9 +41,11 @@ def producer(args):
         for i in tiles:
             result.paste(i.image, (x,0))
             x+= i.image.size[0]
-        filename = "/tmp/composite/%s_%d.jpg" %(filename_prefix, index)
+        name = "batch_%d-%d_%d.jpg" %(filename_prefix,(filename_prefix + window_size), index)
+        filename = "/tmp/composite/%s.jpg" %name
         result.save(filename)
-    producer.queue.put(filename_prefix)
+        producer.queue.put("[ %s ][ %s ]" %(process_name,name))
+    producer.queue.put("minus")
     return
     #for making tiles in one image with original placing, not interesting
     #instead keep meta data in other container
@@ -60,8 +63,10 @@ def consumer(queue, images_left):
         msg = queue.get()
         if msg == None:
             break
-        images_left -=1 
-        print "consumer received: %s now only left: %d" %(msg, images_left)
+        elif msg == "minus":
+            images_left -=1 
+        else:
+            print "%s\tleft: %d" %(msg, images_left)
 
 def producer_init(queue):
     producer.queue = queue
